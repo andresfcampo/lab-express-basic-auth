@@ -1,8 +1,44 @@
-const app = require("./app");
+const express = require("express");
+const mongoose = require("mongoose");
+const handlebars = require('express-handlebars');
 
-// ℹ️ Sets the PORT for our app to have access to it. If no env has been set, we hard code it to 3000
-const PORT = process.env.PORT || 3000;
+mongoose.connect("mongodb://localhost/blog-v2");
 
-app.listen(PORT, () => {
-  console.log(`Server listening on port http://localhost:${PORT}`);
+const app = express();
+
+app.engine("hbs")
+app.set("view engine", "hbs");
+app.use(expressLayouts);
+app.use(express.urlencoded({ extended: false }));
+app.use(express.static("public"));
+app.use(
+  session({
+    secret: "helloworld",
+    resave: true,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      maxAge: 1200000,
+    },
+    store: store.create({
+      mongoUrl: "mongodb://localhost/blog-v2",
+    }),
+  })
+);
+// middle ware for making the user available to all templates
+app.use((req, res, next) => {
+  res.locals.currentUser = req.session.currentUser;
+  next();
 });
+
+app.get("/", (req, res) => {
+  res.render("home");
+});
+
+const userRouter = require("./routes/user.routes");
+app.use("/user", userRouter);
+
+const postRouter = require ('./routes/post.routes')
+app.use('/posts', postRouter);
+
+app.listen(3000);
